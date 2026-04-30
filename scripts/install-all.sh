@@ -16,8 +16,11 @@ install_in_place() {
 install_via_safe_path() {
   local temp_root
   temp_root="$(mktemp -d "${TMPDIR:-/tmp}/hermesxstarcraft-install.XXXXXX")"
+  INSTALL_TEMP_ROOT="$temp_root"
   cleanup() {
-    rm -rf "$temp_root"
+    if [[ -n "${INSTALL_TEMP_ROOT:-}" ]]; then
+      rm -rf "$INSTALL_TEMP_ROOT"
+    fi
   }
   trap cleanup EXIT
 
