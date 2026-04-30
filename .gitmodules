@@ -1,0 +1,4 @@
+[submodule "packages/titan-reactor"]
+	path = packages/titan-reactor
+	url = https://github.com/PhilipAD/titan-reactor-1.git
+	branch = dev

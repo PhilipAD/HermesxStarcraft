@@ -1,0 +1,27 @@
+# ─── Bridge Service Dockerfile ─────────────────────────────────────────────
+# Polls Hermes SQLite + filesystem, streams entity deltas via WebSocket.
+# Runtime: Node.js 20 + tsx (TypeScript execution, no build step needed)
+# ───────────────────────────────────────────────────────────────────────────
+
+FROM node:20-alpine
+WORKDIR /app
+
+# Install tsx for TypeScript execution
+RUN npm install -g tsx
+
+# Copy package files
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy server source
+COPY server/   ./server/
+COPY config/  ./config/
+COPY tsconfig.json .
+
+EXPOSE 9121
+ENV BRIDGE_PORT=9121
+ENV POLL_INTERVAL_MS=3000
+ENV NODE_ENV=production
+
+# Run with tsx (compiles TypeScript on-the-fly)
+CMD ["npx", "tsx", "server/index.ts"]

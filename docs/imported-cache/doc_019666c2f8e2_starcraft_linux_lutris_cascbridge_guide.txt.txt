@@ -1,0 +1,277 @@
+Full Legal Guide for Linux: Install StarCraft Classic + Brood War for Cascbridge
+================================================================================
+
+The original StarCraft: Brood War classic version is completely free to download and install through Battle.net, Blizzard’s official launcher.
+
+You do not need to buy anything for Cascbridge to work with real assets.
+
+StarCraft: Remastered is the paid HD version. It is optional and not required.
+
+This guide uses Lutris, which is one of the easiest and most reliable tools for running Battle.net games on Linux.
+
+Lutris will create a clean Wine prefix with the game files that Cascbridge can read directly.
+
+
+1. Install Lutris
+=================
+
+Run:
+
+sudo apt update && sudo apt upgrade -y
+
+Install dependencies:
+
+sudo apt install lutris wine winetricks -y
+
+If you are on Ubuntu or another Debian-based distro, the Lutris Flatpak is also a good sandboxed option:
+
+flatpak install flathub net.lutris.Lutris
+
+Alternative:
+
+If apt fails, download Lutris from:
+
+https://lutris.net/downloads
+
+You can use the deb package or the Flatpak version.
+
+
+2. Install Battle.net via Lutris
+================================
+
+1. Open Lutris.
+
+   From terminal:
+
+   lutris
+
+   Or open it from your application menu.
+
+2. Click the + icon in the top left.
+
+3. Select:
+
+   Search the Lutris website for installers
+
+4. Type:
+
+   Battle.net
+
+5. Select the official Blizzard Battle.net installer script.
+
+6. Click Install.
+
+7. Follow the prompts.
+
+Recommended options:
+
+- Choose a Wine runner.
+- Latest Wine Staging or Wine-GE / GE-Proton is recommended.
+- Let Lutris download and install the Battle.net launcher.
+
+8. When Battle.net opens, log in with your free Blizzard account.
+
+If you do not have a Blizzard account, create one for free.
+
+
+3. Install Free StarCraft Classic + Brood War
+=============================================
+
+Inside the Battle.net launcher running through Lutris:
+
+1. Go to the StarCraft section.
+
+2. You should see StarCraft, the free classic version.
+
+3. Click Install.
+
+Notes:
+
+- The free classic version includes the original StarCraft game.
+- It also includes the Brood War expansion.
+- No payment is required.
+
+4. Let it download and install.
+
+Expected size:
+
+About 1–2 GB.
+
+Done. The game files are now inside your Lutris Wine prefix.
+
+
+4. Find Your StarCraft Install Path
+===================================
+
+Cascbridge needs the folder that contains StarCraft.exe.
+
+Run:
+
+find ~/.local/share/lutris -name "StarCraft.exe" -type f 2>/dev/null | head -3
+
+Typical paths may look like:
+
+~/.local/share/lutris/runners/wine/.../drive_c/Program Files (x86)/StarCraft/
+
+Or:
+
+~/.local/share/lutris/games/starcraft-.../
+
+Copy the full folder path that contains:
+
+StarCraft.exe
+
+This folder is your StarCraft directory for Cascbridge.
+
+
+5. Set Up Cascbridge with Your New Install
+==========================================
+
+Go to the Cascbridge folder:
+
+cd ~/.hermes/starcraft-dashboard/public/cascbridge
+
+Start Cascbridge for the first time:
+
+./cascbridge || ./cascbridge.AppImage --no-sandbox
+
+In the Cascbridge window:
+
+1. Click:
+
+   Assign your Starcraft directory
+
+2. Paste or select the exact path from Step 4.
+
+3. Set port to:
+
+   8080
+
+4. Click:
+
+   Start
+
+Cascbridge will now serve real original Brood War assets from your StarCraft install.
+
+
+6. Restart the Hermes Dashboard
+===============================
+
+Run:
+
+cd ~/.hermes/starcraft-dashboard
+./start-empire.sh
+
+Open:
+
+http://127.0.0.1:9120
+
+You should now see authentic StarCraft units, buildings, and terrain, such as metallic Command Centers, SCVs, and more.
+
+
+Extra Tips and Requirements
+===========================
+
+Wine Version
+------------
+
+Lutris usually picks a good Wine version automatically.
+
+If there are issues:
+
+1. Open Lutris.
+2. Right-click Battle.net.
+3. Click Configure.
+4. Go to Runner options.
+5. Try Wine-GE, GE-Proton, or Wine Staging.
+
+
+Performance
+-----------
+
+Install Vulkan drivers:
+
+sudo apt install mesa-vulkan-drivers libvulkan1
+
+
+Auto-Start Everything
+=====================
+
+Add this to your start-empire.sh:
+
+# Auto-start Cascbridge
+if ! lsof -Pi :8080 -sTCP:LISTEN >/dev/null 2>&1; then
+  (cd public/cascbridge && ./cascbridge || ./cascbridge.AppImage --no-sandbox) &
+  sleep 4
+fi
+
+Then run:
+
+./start-empire.sh
+
+This will start:
+
+- Hermes Dashboard
+- Bridge
+- Cascbridge
+
+
+Troubleshooting
+===============
+
+Battle.net will not launch
+--------------------------
+
+Try installing Microsoft core fonts:
+
+sudo apt install ttf-mscorefonts-installer
+
+Then restart Lutris and Battle.net.
+
+
+Model path errors in browser console
+------------------------------------
+
+Open browser DevTools:
+
+F12 → Console
+
+Copy the exact 404 or model loading error.
+
+The entityMapper.ts file can then be updated with the correct Cascbridge URLs.
+
+
+Want StarCraft: Remastered instead?
+-----------------------------------
+
+Buy StarCraft: Remastered through Battle.net.
+
+The install process is otherwise the same.
+
+Remastered is optional. Cascbridge does not require it.
+
+
+Legal Note
+==========
+
+This setup uses only the official free Battle.net download.
+
+It is legal for personal use.
+
+
+Final Step
+==========
+
+Run the commands above, starting with installing Lutris.
+
+Once StarCraft is installed and Cascbridge points to it, run:
+
+find ~/.local/share/lutris -name "StarCraft.exe" -type f 2>/dev/null | head -3
+
+If the dashboard still has problems, copy any console errors from:
+
+F12 → Console
+
+Then use those paths or errors to make the final entityMapper.ts mapping tweaks.
+
+Your empire is about to use real StarCraft Brood War assets.

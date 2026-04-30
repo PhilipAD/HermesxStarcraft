@@ -1,0 +1,12 @@
+{
+  "name": "hermesxstarcraft",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hermes dashboard tab and StarCraft Remastered/Titan renderer integration.",
+  "type": "module",
+  "scripts": {
+    "install:all": "npm --prefix packages/starcraft-dashboard install --legacy-peer-deps && npm --prefix packages/titan-reactor install --legacy-peer-deps",
+    "start": "bash scripts/start-hermesxstarcraft.sh",
+    "install:plugin": "bash scripts/install-dashboard-plugin.sh"
+  }
+}

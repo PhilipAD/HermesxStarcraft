@@ -1,0 +1,12 @@
+{
+  "name": "hermesxstarcraft",
+  "label": "Hermes x StarCraft",
+  "description": "Embed the live StarCraft Remastered Terran base view for this Hermes installation.",
+  "icon": "Monitor",
+  "version": "1.0.1",
+  "tab": {
+    "path": "/starcraft",
+    "position": "after:analytics"
+  },
+  "entry": "dist/index.js?v=fit-v2"
+}

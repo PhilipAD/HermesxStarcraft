@@ -1,0 +1,46 @@
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Local/generated env and runtime files.
+.env
+packages/titan-reactor/.env.development.local
+packages/starcraft-dashboard/starcraft-install.path
+
+# Local caches and screenshots.
+.context/
+*.log
+*.tmp
+screenshots/
+**/screenshots/
+*.png
+*.PNG
+playwright-report/
+test-results/
+packages/starcraft-dashboard/tmp/
+
+# Do not commit extracted/analyzed StarCraft Remastered assets.
+# Users must point SC_ROOT at their own purchased install at runtime.
+packages/starcraft-dashboard/analysis/
+packages/starcraft-dashboard/public/cascbridge/
+**/remastered-assets/
+**/remastered-assets-focused/
+**/remastered-target-assets/
+**/*startup-splash*/
+**/*startupSplash*/
+**/*loadingScreens*/
+**/*.dds
+**/*.DDS
+**/*.pcx
+**/*.PCX
+**/*.grp
+**/*.GRP
+**/*.smk
+**/*.SMK
+**/*.mpq
+**/*.MPQ
+**/*.casc
+**/*.CASC
+**/*.ui.json

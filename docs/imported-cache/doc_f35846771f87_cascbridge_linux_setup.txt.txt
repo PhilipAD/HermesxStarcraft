@@ -1,0 +1,161 @@
+Yes — Cascbridge works perfectly on Linux.
+
+The prebuilt releases are cross-platform. The zip contains Linux binaries, an AppImage, or an executable. The underlying casclib library has full Linux support, confirmed in Titan Reactor releases: “Fixed a bug in bw-casclib, allowing mac/linux builds to work now”.
+
+You do not need to build from source unless the binary does not run.
+Everything is pure terminal/CLI — no GUI required after the first run.
+
+
+Full Terminal/CLI Setup for Linux
+=================================
+
+Run these commands one by one:
+
+# 1. Go to your dashboard folder
+cd ~/.hermes/starcraft-dashboard
+
+# 2. Create folder and download the latest Cascbridge release
+mkdir -p public/cascbridge
+cd public/cascbridge
+
+echo "📥 Downloading latest Cascbridge (cross-platform)..."
+curl -L -o cascbridge.zip "https://github.com/alexpineda/cascbridge/releases/latest/download/cascbridge.zip"
+
+unzip -o cascbridge.zip
+
+# 3. Make everything executable, covering Linux binary or .AppImage
+chmod +x * 2>/dev/null || true
+
+echo "✅ Cascbridge downloaded and ready"
+ls -la
+
+
+4. Start Cascbridge, First Time Only
+====================================
+
+# Run the binary. It will open a small setup window the first time.
+./cascbridge 2>/dev/null || ./cascbridge.AppImage --no-sandbox || echo "Try the exact filename shown in ls above"
+
+What to do in the setup window:
+
+- Click “Assign your Starcraft directory”.
+- Point it to the folder that contains your StarCraft.exe, or the Brood War / StarCraft data folders on Linux/Wine.
+- Set port to 8080.
+- Click Start.
+
+You can close the window — Cascbridge keeps running in the background.
+
+To stop it later:
+
+pkill cascbridge
+
+Or press Ctrl+C in the terminal where Cascbridge is running.
+
+
+5. Verify Cascbridge Is Working
+===============================
+
+curl -I http://localhost:8080/
+
+You should see:
+
+HTTP/1.1 200 OK
+
+Or something similar.
+
+Open this in your browser:
+
+http://localhost:8080/
+
+You should see the asset browser with real StarCraft files.
+
+
+6. Wire It Into the Hermes Dashboard
+====================================
+
+The Scene.tsx file is already set up for Cascbridge:
+
+CASC_BASE = 'http://localhost:8080'
+
+Restart the empire:
+
+cd ~/.hermes/starcraft-dashboard
+./start-empire.sh
+
+Open:
+
+http://127.0.0.1:9120
+
+You should now see real StarCraft Brood War units and buildings, such as metallic Command Centers, SCVs, Marines, and more, instead of yellow hexes.
+
+
+Make Everything Auto-Start
+==========================
+
+Add this to the end of your start-empire.sh:
+
+# Auto-start Cascbridge if not running
+if ! lsof -Pi :8080 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "→ Starting Cascbridge (real SC assets)..."
+  (cd public/cascbridge && ./cascbridge || ./cascbridge.AppImage --no-sandbox) &
+  sleep 3
+fi
+
+Then run this anytime:
+
+./start-empire.sh
+
+Everything will start automatically:
+
+- Bridge
+- Viewer
+- Cascbridge
+
+
+Troubleshooting on Linux
+========================
+
+No binary in zip?
+
+Run:
+
+ls
+
+Then use the exact filename shown, for example:
+
+./cascbridge-linux
+
+Or:
+
+./cascbridge.AppImage
+
+
+Missing libraries?
+
+Run:
+
+sudo apt install libgtk-3-0 libnotify4 libnss3 libxss1 libasound2 libxkbcommon0
+
+
+StarCraft on Wine/Proton?
+
+Point Cascbridge to the Wine prefix folder that contains the game files.
+
+
+Console errors in browser?
+
+Open DevTools:
+
+F12 → Console
+
+Paste any 404 or model loading errors so the modelPath mapping can be fixed instantly.
+
+
+Final Note
+==========
+
+This is the most authentic setup possible — 100% original Brood War assets served directly from your game install, with no manual glTF downloads needed.
+
+Run the commands above and check what appears when you open the dashboard. If there are errors, use the console output to update entityMapper.ts with the correct Cascbridge paths.
+
+Your empire is about to look exactly like StarCraft.

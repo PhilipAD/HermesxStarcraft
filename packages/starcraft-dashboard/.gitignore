@@ -1,0 +1,37 @@
+# Dependencies and build output.
+node_modules/
+dist/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Local env and runtime files.
+.env
+.env.local
+starcraft-install.path
+
+# Local logs, test output, and caches.
+*.log
+*.tmp
+playwright-report/
+test-results/
+exported-casc-samples/
+
+# Never commit extracted StarCraft Remastered/CASC analysis output.
+analysis/
+remastered-assets/
+remastered-assets-focused/
+remastered-target-assets/
+*.dds
+*.DDS
+*.pcx
+*.PCX
+*.grp
+*.GRP
+*.smk
+*.SMK
+*.mpq
+*.MPQ
+*.casc
+*.CASC
+*.ui.json

@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Hermes StarCraft Dashboard — Docker Compose
+#
+# Full self-organizing 3D StarCraft dashboard for Hermes Agent.
+# Services:
+#   bridge  — Node.js bridge: reads Hermes state → WebSocket stream
+#   viewer  — Vite + React Three.js frontend
+#   hermes  — (optional) the Hermes Agent itself
+#
+# Usage:
+#   cp .env.example .env   # edit HERMES_HOME if needed
+#   docker compose up      # or: docker compose up -d
+#   open http://localhost:9120
+#
+# For production:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: hermes-starcraft-dashboard
+
+services:
+  # ─── Bridge Service ────────────────────────────────────────────────────
+  # Polls Hermes (filesystem + SQLite) and streams entity deltas via WS.
+  # ────────────────────────────────────────────────────────────────────────
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    volumes:
+      # Mount Hermes home so bridge can read state.db, sessions, skills, etc.
+      - ${HERMES_HOME:-~/.hermes}:/hermes_home:ro
+    environment:
+      - HERMES_HOME=/hermes_home
+      - BRIDGE_PORT=9121
+      - POLL_INTERVAL_MS=3000
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9121/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hermes-net
+
+  # ─── 3D Viewer (Vite + React Three.js) ──────────────────────────────────
+  # Self-representing StarCraft base — real-time, clickable, self-organizing.
+  # ────────────────────────────────────────────────────────────────────────
+  viewer:
+    build:
+      context: .
+      dockerfile: Dockerfile.viewer
+    restart: unless-stopped
+    ports:
+      - "9120:80"
+    environment:
+      - BRIDGE_WS_URL=ws://bridge:9121/ws
+      - NODE_ENV=production
+    depends_on:
+      bridge:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hermes-net
+
+  # ─── Optional: Cascbridge Asset Server ──────────────────────────────────
+  # Serves real StarCraft: Brood War assets (requires SC installation).
+  # Uncomment and configure SC_INSTALL_PATH to enable authentic assets.
+  # ────────────────────────────────────────────────────────────────────────
+  # cascbridge:
+  #   image: node:20-alpine
+  #   restart: unless-stopped
+  #   command: >
+  #     sh -c "npm install -g @cascbridge/cli &&
+  #            cascbridge serve --dir \"$SC_INSTALL_PATH\" --port 8080"
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - SC_INSTALL_PATH=/sc_install
+  #   volumes:
+  #     - ${SC_INSTALL_PATH:-./starforge}:/sc_install:ro
+  #   networks:
+  #     - hermes-net
+
+networks:
+  hermes-net:
+    driver: bridge

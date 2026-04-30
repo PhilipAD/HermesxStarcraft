@@ -1,0 +1,320 @@
+{
+  "$schema": "./mapping.schema.json",
+  "version": "1.0",
+  "description": "Declarative mapping from Hermes Agent concepts to StarCraft units/buildings/terrain",
+
+  "entityTypes": {
+    "CommandCenter": {
+      "scRepresentation": "building",
+      "model": "CommandCenter",
+      "health": 1500,
+      "category": "core",
+      "tier": 3,
+      "visual": {
+        "color": 16776960,
+        "emissive": 26112,
+        "scale": [4, 3, 4],
+        "glowOnActivity": true
+      },
+      "behavior": {
+        "animIdle": "pulse",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "dashboard_overview",
+      "tooltip": "Core Agent / Workspace",
+      "cluster": "command"
+    },
+
+    "TechBuilding": {
+      "scRepresentation": "building",
+      "model": "EngineeringBay",
+      "health": 850,
+      "category": "skills",
+      "tier": 2,
+      "visual": {
+        "color": 16750848,
+        "emissive": 10092390,
+        "scale": [3, 2.5, 3],
+        "glowOnActivity": true
+      },
+      "behavior": {
+        "animIdle": "subtle_sway",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "skill_editor",
+      "tooltip": "Installed Skills / Plugins",
+      "cluster": "tech"
+    },
+
+    "Barracks": {
+      "scRepresentation": "building",
+      "model": "Barracks",
+      "health": 1000,
+      "category": "sessions",
+      "tier": 1,
+      "visual": {
+        "color": 16729344,
+        "emissive": 10027008,
+        "scale": [3, 2, 3],
+        "glowOnActivity": true
+      },
+      "behavior": {
+        "animIdle": "subtle_sway",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "session_detail",
+      "tooltip": "Active Sessions / Tasks",
+      "cluster": "combat"
+    },
+
+    "SupplyDepot": {
+      "scRepresentation": "building",
+      "model": "SupplyDepot",
+      "health": 500,
+      "category": "memory",
+      "tier": 1,
+      "visual": {
+        "color": 10092543,
+        "emissive": 16777215,
+        "scale": [2.5, 2, 2.5],
+        "glowOnActivity": false
+      },
+      "behavior": {
+        "animIdle": "none",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "memory_browser",
+      "tooltip": "Long-term Memory / Knowledge",
+      "cluster": "storage"
+    },
+
+    "SCV": {
+      "scRepresentation": "unit",
+      "model": "SCV",
+      "health": 50,
+      "category": "cron",
+      "tier": 0,
+      "visual": {
+        "color": 16776960,
+        "emissive": 33280,
+        "scale": [0.8, 0.8, 0.8]
+      },
+      "behavior": {
+        "animIdle": "patrol",
+        "animBuild": "spawn",
+        "animDestroyed": "death"
+      },
+      "clickAction": "cron_editor",
+      "tooltip": "Cron Jobs / Automations",
+      "cluster": "worker"
+    },
+
+    "Marine": {
+      "scRepresentation": "unit",
+      "model": "Marine",
+      "health": 40,
+      "category": "quick_tasks",
+      "tier": 0,
+      "visual": {
+        "color": 255,
+        "emissive": 16711680,
+        "scale": [0.7, 0.7, 0.7]
+      },
+      "behavior": {
+        "animIdle": "idle",
+        "animBuild": "spawn",
+        "animDestroyed": "death"
+      },
+      "clickAction": "task_detail",
+      "tooltip": "Quick Tasks / Tool Calls",
+      "cluster": "combat"
+    },
+
+    "Zealot": {
+      "scRepresentation": "unit",
+      "model": "Zealot",
+      "health": 100,
+      "category": "heavy_tasks",
+      "tier": 1,
+      "visual": {
+        "color": 65280,
+        "emissive": 255,
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "behavior": {
+        "animIdle": "idle",
+        "animBuild": "spawn",
+        "animDestroyed": "death"
+      },
+      "clickAction": "task_detail",
+      "tooltip": "Heavy LLM Calls / Reasoning",
+      "cluster": "combat"
+    },
+
+    "VespeneGeyser": {
+      "scRepresentation": "resource",
+      "model": "VespeneGeyser",
+      "health": 999999,
+      "category": "compute",
+      "tier": 0,
+      "visual": {
+        "color": 65408,
+        "emissive": 16711680,
+        "scale": [3, 1.5, 3],
+        "glowOnActivity": true
+      },
+      "behavior": {
+        "animIdle": "harvest_pulse",
+        "animBuild": "none",
+        "animDestroyed": "none"
+      },
+      "clickAction": "analytics_panel",
+      "tooltip": "Compute / Token Usage",
+      "cluster": "resource"
+    },
+
+    "Bunker": {
+      "scRepresentation": "building",
+      "model": "Bunker",
+      "health": 500,
+      "category": "errors",
+      "tier": 1,
+      "visual": {
+        "color": 8388608,
+        "emissive": 255,
+        "scale": [2.5, 2, 2.5],
+        "smokeEffect": true
+      },
+      "behavior": {
+        "animIdle": "smoke",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "error_logs",
+      "tooltip": "Errors / Failures",
+      "cluster": "alerts"
+    },
+
+    "Gateway": {
+      "scRepresentation": "building",
+      "model": "Gateway",
+      "health": 850,
+      "category": "agents",
+      "tier": 2,
+      "visual": {
+        "color": 16711821,
+        "emissive": 8388608,
+        "scale": [3, 2.5, 3]
+      },
+      "behavior": {
+        "animIdle": "subtle_sway",
+        "animBuild": "construct",
+        "animDestroyed": "explode"
+      },
+      "clickAction": "subagent_detail",
+      "tooltip": "Sub-agents / Tools",
+      "cluster": "army"
+    }
+  },
+
+  "clusterLayouts": {
+    "command": {
+      "center": [0, 0],
+      "arrangement": "radial",
+      "spacing": 8
+    },
+    "tech": {
+      "center": [-25, 15],
+      "arrangement": "grid",
+      "spacing": 6
+    },
+    "combat": {
+      "center": [25, 15],
+      "arrangement": "combat",
+      "spacing": 4
+    },
+    "storage": {
+      "center": [-25, -15],
+      "arrangement": "grid",
+      "spacing": 5
+    },
+    "worker": {
+      "center": [0, -20],
+      "arrangement": "scattered",
+      "spacing": 3
+    },
+    "resource": {
+      "center": [0, 25],
+      "arrangement": "clustered",
+      "spacing": 10
+    },
+    "alerts": {
+      "center": [25, -15],
+      "arrangement": "grid",
+      "spacing": 5
+    },
+    "army": {
+      "center": [0, 30],
+      "arrangement": "formation",
+      "spacing": 5
+    }
+  },
+
+  "upgradeRules": {
+    "CommandCenter": {
+      "tier2": { "threshold": 10, "skill_count": 5 },
+      "tier3": { "threshold": 25, "skill_count": 10, "session_count": 50 }
+    },
+    "TechBuilding": {
+      "upgrade": { "trigger": "skill_activated", "visual": "glow_intensify" }
+    },
+    "Barracks": {
+      "spawn": { "trigger": "new_session", "rallyPoint": [25, 15] }
+    },
+    "SCV": {
+      "spawn": { "trigger": "cron_active", "count": "cron_job_count" }
+    },
+    "VespeneGeyser": {
+      "harvest": { "trigger": "compute_update", "rate": "tokens_per_minute" }
+    }
+  },
+
+  "terrain": {
+    "backgroundColor": 2047,
+    "fogColor": 13312,
+    "fogNear": 50,
+    "fogFar": 200,
+    "groundTiles": 64,
+    "tileSize": 4,
+    "elevation": {
+      "base": 0,
+      "command": 2,
+      "tech": 1,
+      "resource": 0.5
+    }
+  },
+
+  "sounds": {
+    "build": "/audio/build.wav",
+    "spawn": "/audio/spawn.wav",
+    "select": "/audio/select.wav",
+    "error": "/audio/error.wav",
+    "upgrade": "/audio/upgrade.wav",
+    "ambient": "/audio/ambient.mp3"
+  },
+
+  "performance": {
+    "maxFPS": 60,
+    "idleFPS": 10,
+    "hiddenFPS": 0,
+    "maxUnits": 500,
+    "instanceThreshold": 10,
+    "lodDistance": 50,
+    "shadowMapSize": 1024,
+    "particleBudget": 200
+  }
+}

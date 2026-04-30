@@ -1,0 +1,143 @@
+Final Specification & Design: Hermes Agent → Real-Time 3D StarCraft Self-Representing Dashboard
+
+Project Goal
+Transform the existing Hermes Agent web dashboard into a live, self-organizing 3D StarCraft base where every Hermes concept (skills, sessions, tasks, memory, cron jobs, compute usage, etc.) is automatically represented as StarCraft units/buildings/terrain. The base evolves in real time as the agent self-improves. No manual placement — it is fully self-representing and self-organizing.
+
+Users join from any web browser (desktop/mobile), click units for live info panels, and watch the empire grow. The 3D view integrates seamlessly as a new tab/plugin inside the official Hermes web dashboard (hermes dashboard).
+
+Core Principles
+• Realtime & self-organizing: Changes in Hermes instantly trigger visual “builds”, spawns, upgrades, or movements.
+• Zero wasted compute: Event-driven (no constant polling), delta-only sync, throttled rendering, background-only processing.
+• Seamless UX: 60 fps when active, instant clicks, smooth camera, SC-style sounds/animations, mobile-friendly.
+• Leverage existing work: Official Hermes dashboard (already has REST + WS + plugin system) + Titan Reactor (OpenBW + Three.js browser 2.5D/3D viewer with plugin support).
+
+1. High-Level Architecture
+
+Hermes Agent (Python core)
+   │
+   ├── Official Web Dashboard (React + FastAPI, localhost:9119)
+   │       └── New Plugin: "StarCraft Viz" tab (embeds or iframes the viewer)
+   │
+   ├── Bridge Service (light Node.js/TS microservice)
+   │       ├── Polls Hermes REST every 5s OR subscribes to Hermes events
+   │       └── Pushes delta state over WebSocket to Viewer
+   │
+   └── Titan Reactor Fork (TS + Three.js + OpenBW WASM)
+           └── New "LiveAgentMode"
+                • No replay file
+                • Receives external state via WS
+                • Drives units/buildings directly
+                • Self-organizing layout engine
+
+Data Flow (real-time)
+Hermes event (skill created, session started, etc.) → Bridge detects delta → WS push → Viewer applies only changed units → Three.js re-renders minimally.
+
+2. Entity Mapping (Declarative JSON Config)
+
+A single mapping.json file (editable by user) defines the abstraction. Example:
+
+Hermes Concept | SC Representation | Visual Behavior | Click Action
+Core Agent / Workspace | Command Center (upgrades with version) | Grows in tiers as agent self-improves | Opens full dashboard overview
+Installed Skills / Plugins | Tech Buildings (Engineering Bay, Armory, etc.) | Auto-build animation on activation | Skill editor + toggle
+Active Sessions / Tasks | Combat Units (Marines = quick tasks, Zealots = heavy LLM calls) | Spawn at rally point, move to “battle” clusters | Session log + resume / terminate
+Long-term Memory / Knowledge | Supply Depots or Bunker | Grows in size with memory entries | Memory browser
+Cron Jobs / Automations | SCVs / Probes mining | Persistent background movement | Cron editor
+Compute / Token Usage | Minerals + Gas stockpiles | Harvest rate = real-time usage | Analytics panel
+Errors / Failures | Destroyed buildings + smoke | Explosion + alert ping | Error logs
+Sub-agents / Tools | Army groups (grouped visually) | Cluster together by relationship | Drill-down
+
+Self-Organizing Logic (runs in Web Worker)
+• Force-directed layout (simple repulsion + attraction) so related units cluster naturally.
+• Grid fallback for large numbers (>200 units).
+• Terrain auto-adjusts: new buildings raise nearby elevation (using OpenBW heightmap).
+• Units “patrol” or “mine” based on activity level.
+
+3. UX & Interaction Design
+
+• Entry Point: New tab in Hermes dashboard called “StarCraft Base” (or “Agent Empire”).
+• Controls: Standard SC camera (drag, wheel zoom, minimap click). Hotkeys preserved.
+• Selection: Click or drag-select units → right sidebar shows live Hermes data (JSON + pretty UI panels with action buttons).
+• Multi-viewer: Any number of browsers can connect simultaneously (shared session via same WS).
+• Themes: Matches Hermes dashboard themes (dark/SC classic).
+• Mobile: Touch-friendly, auto low-FPS mode.
+• Immersion: Original SC sounds on build/spawn, subtle music toggle.
+
+4. Non-Functional Requirements (Efficiency First)
+
+• CPU/GPU: Max 30 fps when tab visible; drop to 5 fps or pause when hidden (Page Visibility API + requestIdleCallback).
+• Network: Only delta payloads (<1 KB per update). WebSocket reconnection with exponential backoff.
+• Memory: Instanced meshes for units, object pooling, dispose unused Three.js objects.
+• Battery: Throttle in background; no WebGL when not in viewport.
+• Scalability: Tested with 500+ simulated units (should stay <200 MB RAM).
+• Latency: <300 ms from Hermes event to visual update.
+
+5. Implementation Guide for Software Engineer
+
+Prerequisites
+• Node.js 20+, Yarn, Python (Hermes already installed).
+• Basic knowledge of Three.js, TypeScript, React, WebSockets.
+• Fork these two repos:
+  1. https://github.com/NousResearch/hermes-agent (for dashboard plugin)
+  2. https://github.com/alexpineda/titan-reactor (latest dev branch)
+
+Step-by-Step Build Plan (2–4 weeks for MVP)
+
+1. Create Bridge Service (1 day)
+   ◦ New folder hermes-starcraft-bridge (Node/Express + ws).
+   ◦ Expose /state WebSocket that pushes JSON deltas.
+   ◦ Poll Hermes /api/status, /api/sessions, /api/skills every 3–5 s (or hook into Hermes event bus if available).
+   ◦ Convert to SC-friendly delta format using the mapping.json.
+
+2. Extend Hermes Dashboard Plugin (2–3 days)
+   ◦ Use official plugin SDK (manifest + shell slots).
+   ◦ Add new tab “StarCraft Viz”.
+   ◦ Embed Titan Reactor via iframe (same-origin, localhost) OR mount as React component (preferred).
+   ◦ Pass auth token and WS URL via query params.
+
+3. Fork & Modify Titan Reactor → LiveAgentMode (core work, 1–2 weeks)
+   ◦ Create new mode LiveAgentMode.ts that:
+     ▪ Skips replay parser.
+     ▪ Connects to Bridge WS.
+     ▪ Maintains internal game state (units, buildings, resources).
+     ▪ Calls existing OpenBW simulation tick only for animations/physics.
+   ◦ Add declarative mapping loader.
+   ◦ Implement self-organizing layout in a Web Worker (use simple-force or custom grid).
+   ◦ Unit click → postMessage back to parent dashboard for side-panel.
+   ◦ Performance:
+     ▪ Use THREE.InstancedMesh for all units.
+     ▪ requestAnimationFrame with dirty flag + frame budget.
+     ▪ LOD: reduce detail at distance.
+     ▪ Throttle simulation to 10 ticks/sec when idle.
+
+4. Efficiency & Polish (ongoing)
+   ◦ Profile with Chrome DevTools (Performance + Memory tabs).
+   ◦ Add useEffect cleanup for all subscriptions.
+   ◦ Implement pause/resume on tab blur/focus.
+   ◦ Cache mapping.json and assets locally (service worker).
+   ◦ Optional: PWA manifest so it can be “installed” as a desktop app.
+
+5. Testing & Deployment
+   ◦ Local: Run Hermes → dashboard → bridge → Titan fork.
+   ◦ Multi-device: Open same URL on phone.
+   ◦ Stress test: Create 100 dummy skills/sessions and watch base grow without lag.
+   ◦ Deploy: Docker Compose (Hermes + Bridge + static Titan build) or run everything locally.
+
+Recommended Tech Additions
+• zustand or valtio for lightweight state in viewer.
+• three-mesh-bvh for fast selection raycasting.
+• Reuse existing Titan plugins for minimap, fog-of-war, selection UI.
+
+Assets
+• Use community 3D glTF recreations already prototyped for Titan Reactor (or fallback to classic sprites).
+• All personal-use only — no redistribution.
+
+This spec turns your Hermes agent into a living, breathing StarCraft empire that you can literally watch grow in real time. The existing Hermes dashboard already gives us 80% of the UI work; Titan Reactor gives us the perfect 3D engine.
+
+A competent full-stack engineer (TS + Three.js) can deliver a polished MVP in under a month.
+
+Optional next files to generate:
+• Exact mapping.json template
+• Starter code for the Bridge
+• Starter code for LiveAgentMode
+• Docker Compose file
+

@@ -1,0 +1,174 @@
+✅ YES — Full Terminal/CLI Guide to Use Real StarCraft Assets via Cascbridge
+
+You do not need to download any community glTF models. Cascbridge is the official asset server from the Titan Reactor team. It reads directly from your own installed copy of StarCraft: Brood War or StarCraft Remastered (the files you legally own) and serves them over HTTP (http://localhost:8080 by default) to any browser app — including your Hermes dashboard.
+
+This gives you pixel-perfect original Brood War assets (units, buildings, textures, animations, sounds) with zero manual downloading of models.
+
+Prerequisites (Must Have)
+
+• StarCraft: Brood War or StarCraft Remastered installed on your computer (physical CD, digital download from Blizzard, GOG, etc.).
+• Node.js 20+ already installed (you already have it for the dashboard).
+• ~500 MB free disk space.
+
+Step-by-Step Terminal/CLI Setup (Copy-Paste Everything)
+
+1. Find your StarCraft install path (run these commands)
+
+# Windows (most common)
+dir "C:\Program Files\StarCraft" 2>nul || echo "Not in default location — search manually for StarCraft.exe"
+
+# macOS
+find /Applications -name "StarCraft*" -type d 2>/dev/null || echo "Check ~/Library/Application Support/Blizzard"
+
+# Linux / Wine / Steam
+find ~ -name "StarCraft.exe" -type f 2>/dev/null | head -5
+
+Note the exact folder that contains StarCraft.exe (e.g. /Applications/StarCraft or C:\Program Files\StarCraft). Call this your STARCRAFT_PATH.
+
+2. Download the latest Cascbridge pre-built binary (CLI-ready)
+
+cd ~/.hermes/starcraft-dashboard
+
+# Create assets folder
+mkdir -p public/cascbridge
+
+# Download latest release (v1.1.1 as of now — auto-fetches latest)
+curl -L -o cascbridge.zip "https://github.com/alexpineda/cascbridge/releases/latest/download/cascbridge.zip"
+
+unzip -o cascbridge.zip -d public/cascbridge
+chmod +x public/cascbridge/cascbridge* 2>/dev/null || true   # make executable on macOS/Linux
+
+3. Start Cascbridge (Terminal + one-time GUI setup)
+
+# Run it (it will open a small UI window the first time)
+cd ~/.hermes/starcraft-dashboard/public/cascbridge
+
+# On macOS/Linux:
+./cascbridge
+
+# On Windows (double-click the .exe or run in terminal):
+# cascbridge.exe
+
+In the small UI that appears:
+
+• Click “Assign your Starcraft directory”
+• Paste/select your STARCRAFT_PATH from Step 1
+• Set Port to 8080 (default)
+• Click Start
+
+Cascbridge will now run in the background and serve all real StarCraft assets at:
+
+• http://localhost:8080/
+
+You can close the UI window — it keeps running. To stop later: Ctrl+C in the terminal or kill the process.
+
+4. Verify Cascbridge is working (test in terminal)
+
+curl -I http://localhost:8080/
+
+# Should return HTTP/1.1 200 OK or similar
+
+You should also be able to open http://localhost:8080/ in your browser and see the asset browser.
+
+5. Wire Cascbridge into your Hermes Dashboard (one patch)
+
+Run this command to update your Scene.tsx to load real assets from Cascbridge:
+
+cd ~/.hermes/starcraft-dashboard
+cat > src/viewer/components/Scene.tsx << 'EOF'
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment, useGLTF, Html, useAnimations } from '@react-three/drei';
+import { EffectComposer, Bloom, SSAO, Vignette } from '@react-three/postprocessing';
+import * as THREE from 'three';
+import { Suspense, useEffect, useRef } from 'react';
+
+// Load real SC assets from Cascbridge (localhost:8080)
+const CASC_BASE = 'http://localhost:8080';
+
+function RealSCModel({ modelPath, position, scale = 1, onClick }: any) {
+  const fullUrl = `${CASC_BASE}${modelPath}`;   // e.g. /units/terran/commandcenter.glb or whatever path Cascbridge uses
+  const { scene, animations } = useGLTF(fullUrl);
+  const { actions } = useAnimations(animations, scene);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    scene.traverse((child: any) => {
+      if (child.isMesh) {
+        child.castShadow = child.receiveShadow = true;
+      }
+    });
+    if (actions['Idle'] || actions['idle']) (actions['Idle'] || actions['idle']).play();
+  }, [scene, actions]);
+
+  return ;
+}
+
+const Scene = ({ entities, onEntityClick }: any) => {
+  return (
+     {
+      state.scene.background = new THREE.Color(0x0a1428);
+      state.scene.fog = new THREE.FogExp2(0x0a1428, 0.0015);
+    }}>
+      
+        
+        
+        
+
+        {entities.map((ent: any) => (
+           onEntityClick(ent)}>
+            
+            
+              
+{ent.label}
+            
+          
+        ))}
+
+        
+          
+          
+          
+        
+
+        
+        
+      
+    
+  );
+};
+
+export default Scene;
+EOF
+
+Important: The exact modelPath (e.g. /units/terran/commandcenter.glb) depends on how Cascbridge exposes the files. Open http://localhost:8080/ in your browser while Cascbridge is running and explore the folder structure — then update entityMapper.ts or the mapping.json to use the correct paths for each scType.
+
+6. Restart the entire empire
+
+cd ~/.hermes/starcraft-dashboard
+./start-empire.sh
+
+Cascbridge must stay running in its own terminal.
+
+7. Make it fully automatic (optional one-liner start script)
+
+Add to your start-empire.sh:
+
+# Start Cascbridge if not running
+if ! lsof -Pi :8080 -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "→ Starting Cascbridge (real SC assets)..."
+  (cd public/cascbridge && ./cascbridge) &
+fi
+
+Testing It Worked
+
+• Open http://127.0.0.1:9120
+• Check browser console (F12) — no more 404 errors for models
+• You should now see real metallic Terran Command Centers, SCVs mining, Marines, etc. instead of yellow hexes.
+
+If Cascbridge asks for the path again or you see errors, just re-run the binary and re-assign the STARCRAFT_PATH.
+
+This is the most authentic way possible — 100% original Brood War assets, no community approximations.
+
+Run the commands above and let me know what you see in the browser (or paste any console errors). I’ll give you the exact entityMapper.ts updates for the correct Cascbridge paths once it’s running.
+
+Your empire is now using the real game assets. 🚀
