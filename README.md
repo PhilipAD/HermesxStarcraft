@@ -100,7 +100,7 @@ This package includes a modified/pinned Titan Reactor tree. Titan Reactor is an 
 
 Before creating a public repository, verify the redistribution license for the Titan Reactor snapshot and the OpenBW/WASM files in `packages/titan-reactor`. If an explicit compatible license is not present, publish this as a patch/integration wrapper that asks users to clone Titan Reactor themselves, or obtain permission before redistributing the vendored renderer. See `THIRD_PARTY_NOTICES.md`.
 
-Titan/OpenBW runtime binaries are intentionally not committed here. If a checkout needs refreshed `bundled/titan.wasm`, `bundled/titan.wasm.*`, or other generated renderer artifacts, rebuild them locally from `packages/titan-reactor` instead of copying binaries or StarCraft install files into Git.
+Titan/OpenBW runtime binaries needed by this integration are committed in the Titan submodule via Git LFS. If you edit and rebuild OpenBW/Titan, commit refreshed runtime artifacts such as `bundled/titan.wasm` and `src/openbw/titan.wasm.js` to the Titan fork with Git LFS. Do not commit StarCraft install files, extracted CASC data, maps, sprites, sounds, screenshots, or local logs.
 
 ## Configure
 
