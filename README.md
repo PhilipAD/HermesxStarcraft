@@ -78,13 +78,52 @@ HermesxStarcraft/
   .env                            # local non-secret defaults for this checkout
 ```
 
+## Quick Start
+
+Clone with submodules, configure your local StarCraft install, install dependencies, then register the Hermes dashboard plugin:
+
+```bash
+git clone --recurse-submodules https://github.com/PhilipAD/HermesxStarcraft.git
+cd HermesxStarcraft
+cp .env.sample .env
+```
+
+Edit `.env` and set `SC_ROOT` to your legally owned StarCraft Remastered install:
+
+```bash
+HERMES_HOME=$HOME/.hermes
+SC_ROOT="/path/to/your/StarCraft"
+CASC_PORT=8080
+TITAN_STUB_RUNTIME_PORT=8090
+TITAN_STUB_PLUGINS_PORT=8091
+```
+
+Install and register the dashboard tab:
+
+```bash
+npm run install:all
+npm run install:plugin
+```
+
+Start the stack:
+
+```bash
+npm run start
+```
+
+Then open the Hermes dashboard and choose the `Hermes x StarCraft` tab. Direct local view:
+
+```text
+http://127.0.0.1:9120/?titan=1
+```
+
 ## Requirements
 
 - A working Hermes installation on the same machine.
 - A legally owned local installation of StarCraft Remastered.
 - Node.js 20 or newer.
 - npm.
-- Git LFS content resolved for `packages/titan-reactor/src/openbw/titan.wasm.js`.
+- Git and Git LFS. The Titan submodule stores required OpenBW runtime artifacts with LFS.
 - Native build tools for `bw-casclib` if your platform needs to rebuild the CASC reader.
 - A browser with WebGL support. Use `TITAN_WEBGL_COMPAT=1` on VM/llvmpipe systems if needed.
 
@@ -96,15 +135,15 @@ This package must not include Blizzard game assets. It does not need to ship Sta
 
 Users must own a valid copy of StarCraft Remastered. This project is not affiliated with, endorsed by, sponsored by, or approved by Blizzard Entertainment. StarCraft and Blizzard Entertainment are trademarks or registered trademarks of Blizzard Entertainment, Inc.
 
-This package includes a modified/pinned Titan Reactor tree. Titan Reactor is an OpenBW 2.5D StarCraft map and replay viewer; the upstream README also states that it requires a purchased copy of StarCraft Remastered and uses an asset server that reads from the local StarCraft install. See the upstream project: <https://github.com/alexpineda/titan-reactor>.
+This package references a modified Titan Reactor fork as a Git submodule. Titan Reactor is an OpenBW 2.5D StarCraft map and replay viewer; the upstream README also states that it requires a purchased copy of StarCraft Remastered and uses an asset server that reads from the local StarCraft install. See the upstream project: <https://github.com/alexpineda/titan-reactor> and the Hermes fork: <https://github.com/PhilipAD/titan-reactor-1>.
 
-Before creating a public repository, verify the redistribution license for the Titan Reactor snapshot and the OpenBW/WASM files in `packages/titan-reactor`. If an explicit compatible license is not present, publish this as a patch/integration wrapper that asks users to clone Titan Reactor themselves, or obtain permission before redistributing the vendored renderer. See `THIRD_PARTY_NOTICES.md`.
+See `THIRD_PARTY_NOTICES.md` for third-party attribution notes.
 
 Titan/OpenBW runtime binaries needed by this integration are committed in the Titan submodule via Git LFS. If you edit and rebuild OpenBW/Titan, commit refreshed runtime artifacts such as `bundled/titan.wasm` and `src/openbw/titan.wasm.js` to the Titan fork with Git LFS. Do not commit StarCraft install files, extracted CASC data, maps, sprites, sounds, screenshots, or local logs.
 
 ## Configure
 
-Copy the sample and set your local StarCraft path:
+If you skipped the quick start, copy the sample and set your local StarCraft path:
 
 ```bash
 cp .env.sample .env
