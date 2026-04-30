@@ -88,7 +88,7 @@ HermesxStarcraft/
 - Native build tools for `bw-casclib` if your platform needs to rebuild the CASC reader.
 - A browser with WebGL support. Use `TITAN_WEBGL_COMPAT=1` on VM/llvmpipe systems if needed.
 
-Use a checkout path without shell metacharacters such as parentheses. The StarCraft CASC native dependency currently fails its first `node-gyp` build from paths like `HermesxStarcraft(1)` because its upstream make recipe does not quote every generated path.
+The installer handles checkout paths with shell metacharacters such as parentheses by compiling native dependencies through a temporary safe build path, then copying the installed dependencies back.
 
 ## Legal And Distribution Notes
 
@@ -130,7 +130,7 @@ npm run install:all
 npm run install:plugin
 ```
 
-`install:all` automatically applies the `-Wno-narrowing` compiler flag required by the bundled CASC native dependency on newer Linux toolchains.
+`install:all` automatically applies the `-Wno-narrowing` compiler flag required by the bundled CASC native dependency on newer Linux toolchains. If the checkout path contains characters that break upstream `node-gyp` recipes, it transparently installs through a temporary safe path.
 
 `install:plugin` registers the Hermes dashboard tab by creating a symlink:
 
