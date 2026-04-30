@@ -1,42 +1,22 @@
 # Hermes x StarCraft
 
-Hermes x StarCraft adds a StarCraft Remastered operations view to the Hermes dashboard. It renders a live Hermes installation as a StarCraft base after a Remastered-style boot flow: title splash, campaign race selection, loading screen, then the Titan/OpenBW iframe.
-
-This package vendors the Hermes StarCraft dashboard integration and a modified Titan Reactor/OpenBW renderer so the Hermes dashboard can embed the view as another tab.
+Hermes x StarCraft adds a StarCraft Remastered operations view to the Hermes dashboard. It renders a live Hermes installation as a StarCraft base after a Remastered-style boot flow, then embeds a modified Titan Reactor/OpenBW renderer as a dashboard tab.
 
 ## What It Does
 
-The dashboard reads a local Hermes home directory and turns operational state into StarCraft entities. Terran remains the baseline mapping:
+The dashboard reads a local Hermes home directory and turns operational state into StarCraft entities. The identity core becomes the main base, cron jobs become workers, active sessions become combat units, API keys become gas infrastructure, skills become production buildings, and logs/monitoring become defensive or observability structures.
 
-- `CommandCenter`: the user's Hermes agent identity core. The label is pulled from Hermes config when available, with a generic `Hermes Agent` fallback.
-- `SCV`: 4 base workers plus 1 per enabled cron job.
-- `Marine`: active sessions from the Sessions page, live in the last 5 minutes.
-- `Firebat`: heavier/high-tool-use active sessions.
-- `Ghost`: running summoned external-agent providers, capped at 6.
-- `Factory`: enabled skill categories from the Skills page.
-- `Refinery`: configured API key groups: LLM providers, Tool APIs, and Platform tokens.
-- `Barracks`: chat/session operating layer.
-- `Academy`, `EngineeringBay`, `ScienceFacility`: config, skill, analytics, token, and cost intelligence.
-- `MissileTurret`, `Bunker`, `ComsatStation`: logs, monitoring, health, and defensive controls.
-- `Starport`, `ControlTower`, `Dropship`, `ScienceVessel`: gateway/platform/network and analytics reach.
+Terran, Zerg, and Protoss use different StarCraft units while preserving the same Hermes roles. Protoss layouts add the minimum needed Pylons so buildings stay powered.
 
-The boot flow loads all art dynamically from the user's local StarCraft Remastered install through the CASC HTTP server:
+The boot flow loads art dynamically from the user's local StarCraft Remastered install through the CASC HTTP server:
 
 - Splash: `SD\glue\title\title.DDS` via `?png=1`.
 - Race selection: `SD\glue\campaign\prot.webm`, `terr.webm`, and `zerg.webm`.
 - Loading screen: `SD\glue\palnl\backgnd.DDS` via `?png=1`, with a bottom-centered loading indicator.
 
-Selecting a race changes the entity scTypes streamed into Titan while preserving the same Hermes semantic roles:
-
-- Terran uses the original Command Center model: `CommandCenter`, `SCV`, `Refinery`, `Barracks`, `Factory`, `Starport`, `Marine`, `Firebat`, `Ghost`, `ScienceVessel`, and related Terran structures.
-- Zerg uses a biological Hermes model: `Hatchery -> Lair -> Hive` for the evolving identity core, `Drone` workers, `Extractor` providers, `Zergling` short sessions, `Hydralisk` heavier sessions, `Defiler` deep analysis, `Overlord` capacity/observability, `EvolutionChamber` skills, `DefilerMound` analytics, `UltraliskCavern` apex operations, `NydusCanal` routing, and `SporeColony` / `SunkenColony` monitoring and defense.
-- Protoss uses a precision-depth Hermes model: `Nexus` as the identity core, `Probe` cron workers, `Assimilator` providers, `Pylon` capacity, `Zealot` standard sessions, `Dragoon` heavy/API sessions, `DarkTemplar` background agents, `RoboticsFacility` toolsets, `Observer` analytics/monitoring, `Forge` skill upgrades, `Stargate -> FleetBeacon -> Carrier` platform reach, and `ArbiterTribunal -> Arbiter` apex coordination.
-
 ## How It Works
 
-Titan Reactor originally works as a StarCraft map and replay viewer: it loads StarCraft data, lets OpenBW simulate a map or replay, and renders the units that already exist in that game state.
-
-Hermes x StarCraft keeps Titan as the renderer, but changes who drives the world. Instead of waiting for a replay to provide units, the Hermes dashboard sends a live list of Hermes-derived entities into the Titan iframe. Titan then spawns, updates, and removes real OpenBW units so the loaded map becomes a live visualization of the user's Hermes agent.
+Hermes x StarCraft keeps Titan as the renderer but lets Hermes drive the world. The dashboard sends a live list of Hermes-derived entities into the Titan iframe, and Titan spawns, updates, and removes real OpenBW units on the loaded map.
 
 Simple flow:
 
@@ -51,16 +31,12 @@ Hermes files + state.db
   -> OpenBW units/buildings on the map
 ```
 
-The main pieces are:
+Key pieces:
 
-- `packages/starcraft-dashboard/server/hermesState.ts` reads Hermes state from SQLite, config, skills, cron jobs, memories, logs, and environment-derived integrations.
-- `packages/starcraft-dashboard/server/entityMapper.ts` converts Hermes state into StarCraft concepts such as `CommandCenter`, `SCV`, `Marine`, `Factory`, `Refinery`, `Ghost`, and observability buildings.
-- `packages/starcraft-dashboard/server/index.ts` polls Hermes every few seconds and streams snapshots or deltas to the viewer over WebSocket.
-- `packages/starcraft-dashboard/src/viewer/TitanGameClient.tsx` embeds Titan, chooses a map from the user's StarCraft install, receives Hermes entities, applies race/edit-mode overrides, and posts `hermes:entities` into the iframe.
-- `packages/titan-reactor/src/core/world/world-composer.ts` installs the Hermes bridge after Titan creates the OpenBW world, making the map controllable by Hermes messages.
-- `packages/titan-reactor/src/core/world/hermes-entity-bridge.ts` receives `hermes:entities` and creates the matching OpenBW unit or building.
-- `packages/titan-reactor/src/core/world/hermes-base-layout.ts` lays the base out around the player start location, near real mineral patches and geysers.
-- `packages/titan-reactor/src/core/world/hermes-unit-behavior.ts` makes the scene feel alive by issuing low-frequency orders such as SCV gathering and patrol movement.
+- `packages/starcraft-dashboard/`: Hermes state reader, entity mapper, WebSocket bridge, viewer, CASC asset server, and dashboard integration.
+- `packages/titan-reactor/src/core/world/`: Hermes bridge, base layout, terrain validation, and low-frequency unit behavior.
+- `plugins/hermesxstarcraft/`: dashboard plugin tab that points Hermes at the local viewer.
+- `scripts/`: install, plugin registration, and start helpers.
 
 Building support required a small OpenBW/Titan adaptation. Mobile units use OpenBW's normal unit creation path. Buildings use a completed-building creation path so real structures can appear reliably without being blocked by normal melee placement checks during dashboard rendering. Placement validation is still used where possible so edited positions do not crash or overlap obvious invalid terrain.
 
@@ -78,9 +54,9 @@ HermesxStarcraft/
   .env                            # local non-secret defaults for this checkout
 ```
 
-## Quick Start
+## Setup
 
-Clone with submodules, configure your local StarCraft install, install dependencies, then register the Hermes dashboard plugin:
+Clone with submodules, configure your local StarCraft install, install dependencies, and register the Hermes dashboard plugin:
 
 ```bash
 git clone --recurse-submodules https://github.com/PhilipAD/HermesxStarcraft.git
@@ -105,17 +81,17 @@ npm run install:all
 npm run install:plugin
 ```
 
-Start the stack:
+`install:all` applies the `-Wno-narrowing` compiler flag required by the bundled CASC native dependency on newer Linux toolchains. If the checkout path contains shell metacharacters such as parentheses, it installs through a temporary safe path and copies `node_modules` back.
 
-```bash
-npm run start
-```
-
-Then open the Hermes dashboard and choose the `Hermes x StarCraft` tab. Direct local view:
+`install:plugin` creates this symlink:
 
 ```text
-http://127.0.0.1:9120/?titan=1
+~/.hermes/plugins/hermesxstarcraft -> ./plugins/hermesxstarcraft
 ```
+
+Restart the Hermes dashboard or rescan dashboard plugins after installing.
+
+Do not put API keys or secrets in this package's `.env`. Hermes credentials stay in the normal Hermes home.
 
 ## Requirements
 
@@ -126,8 +102,6 @@ http://127.0.0.1:9120/?titan=1
 - Git and Git LFS. The Titan submodule stores required OpenBW runtime artifacts with LFS.
 - Native build tools for `bw-casclib` if your platform needs to rebuild the CASC reader.
 - A browser with WebGL support. Use `TITAN_WEBGL_COMPAT=1` on VM/llvmpipe systems if needed.
-
-The installer handles checkout paths with shell metacharacters such as parentheses by compiling native dependencies through a temporary safe build path, then copying the installed dependencies back.
 
 ## Legal And Distribution Notes
 
@@ -141,62 +115,19 @@ See `THIRD_PARTY_NOTICES.md` for third-party attribution notes.
 
 Titan/OpenBW runtime binaries needed by this integration are committed in the Titan submodule via Git LFS. If you edit and rebuild OpenBW/Titan, commit refreshed runtime artifacts such as `bundled/titan.wasm` and `src/openbw/titan.wasm.js` to the Titan fork with Git LFS. Do not commit StarCraft install files, extracted CASC data, maps, sprites, sounds, screenshots, or local logs.
 
-## Configure
-
-If you skipped the quick start, copy the sample and set your local StarCraft path:
-
-```bash
-cp .env.sample .env
-```
-
-Edit `.env`:
-
-```bash
-HERMES_HOME=$HOME/.hermes
-SC_ROOT="/path/to/your/StarCraft"
-CASC_PORT=8080
-TITAN_STUB_RUNTIME_PORT=8090
-TITAN_STUB_PLUGINS_PORT=8091
-```
-
-Do not put API keys or secrets in this package's `.env`. Hermes credentials stay in the normal Hermes home.
-
-## Install
-
-```bash
-cd HermesxStarcraft
-npm run install:all
-npm run install:plugin
-```
-
-`install:all` automatically applies the `-Wno-narrowing` compiler flag required by the bundled CASC native dependency on newer Linux toolchains. If the checkout path contains characters that break upstream `node-gyp` recipes, it transparently installs through a temporary safe path.
-
-`install:plugin` registers the Hermes dashboard tab by creating a symlink:
-
-```text
-~/.hermes/plugins/hermesxstarcraft -> ./plugins/hermesxstarcraft
-```
-
-Restart the Hermes dashboard or rescan dashboard plugins after installing.
-
 ## Run
 
 ```bash
-cd HermesxStarcraft
 npm run start
 ```
 
-Then open the Hermes dashboard and choose the `Hermes x StarCraft` tab.
-
-Direct view:
+Open the Hermes dashboard and choose the `Hermes x StarCraft` tab, or use the direct local view:
 
 ```text
 http://127.0.0.1:9120/?titan=1
 ```
 
-The direct view now starts at the dynamic StarCraft Remastered splash instead of Titan's default Wraith home scene. Game assets are requested at runtime from the local CASC server and are not vendored into this repository.
-
-Default local ports:
+Default ports:
 
 - `9120`: Hermes x StarCraft dashboard viewer
 - `9121`: Hermes bridge API/WebSocket
@@ -205,7 +136,9 @@ Default local ports:
 - `8090`: Titan runtime stub
 - `8091`: Titan plugin stub
 
-## Environment Variables
+Expected startup output includes the bridge on `9121`, viewer on `9120`, Titan on `3344`, and CASC server on `8080`. If the iframe is blank, first confirm `SC_ROOT` points at a valid StarCraft Remastered install and that `packages/titan-reactor/src/openbw/titan.wasm.js` is not a Git LFS pointer.
+
+## Configuration Reference
 
 - `HERMES_HOME`: Hermes data directory. Default: `~/.hermes`.
 - `SC_ROOT`: required path to StarCraft Remastered.
@@ -230,20 +163,3 @@ The package is intended to exclude:
 - binary game asset formats such as `.dds`, `.pcx`, `.grp`, `.smk`, `.mpq`, and `.casc`
 - screenshots, local logs, caches, and Playwright output
 
-## Smoke Check
-
-After install:
-
-```bash
-npm run start
-```
-
-Expected behavior:
-
-- bridge starts on `9121`
-- viewer starts on `9120`
-- Titan starts on `3344`
-- CASC server starts on `8080`
-- Hermes dashboard tab loads an iframe pointed at `http://127.0.0.1:9120/?titan=1`
-
-If the iframe is blank, first confirm `SC_ROOT` points at a valid StarCraft Remastered install and that `packages/titan-reactor/src/openbw/titan.wasm.js` is not a Git LFS pointer.
