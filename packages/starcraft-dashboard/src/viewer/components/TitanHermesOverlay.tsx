@@ -14,7 +14,7 @@ export interface TitanHermesOverlayProps {
   mapListError?: string | null
   entitiesOverride?: Map<string, Entity>
   editMode?: boolean
-  onToggleEditMode?: () => void
+  onResetRaceSelection?: () => void
   /**
    * Click handler for an entity row. The dashboard wires this to a
    * postMessage that tells the Titan iframe to pan the camera to the
@@ -31,7 +31,7 @@ export function TitanHermesOverlay({
   mapListError = null,
   entitiesOverride,
   editMode = false,
-  onToggleEditMode,
+  onResetRaceSelection,
   onFocusEntity,
 }: TitanHermesOverlayProps = {}) {
   const storeEntities = useDashboardStore((s) => s.entities)
@@ -140,34 +140,38 @@ export function TitanHermesOverlay({
           MAP {mapBasename || (mapListError ? 'none (error)' : 'home scene')}
         </button>
         <div style={{ flex: 1 }} />
-        <a
-          href="/?dash=1"
-          style={{ color: '#8cf', fontSize: 11, textDecoration: 'none' }}
-          title="Open the legacy Hermes procedural dashboard"
-        >
-          dashboard
-        </a>
-        <a
-          href="/?cascdev=1"
-          style={{ color: '#8cf', fontSize: 11, textDecoration: 'none' }}
-          title="CASC DDS sanity view (dev)"
-        >
-          cascdev
-        </a>
         <button
           data-testid="titan-edit-mode-toggle"
-          onClick={() => onToggleEditMode && onToggleEditMode()}
+          disabled
+          title="WIP"
           style={{
-            background: editMode ? '#2f7a45' : '#11324a',
+            background: '#13202c',
+            color: '#6f8790',
+            border: '1px solid #263b48',
+            padding: '2px 10px',
+            cursor: 'not-allowed',
+            fontFamily: 'inherit',
+            fontSize: 11,
+            opacity: 0.75,
+          }}
+        >
+          {editMode ? 'EDIT MODE ON' : 'edit mode'}
+        </button>
+        <button
+          data-testid="titan-race-select-reset"
+          onClick={() => onResetRaceSelection && onResetRaceSelection()}
+          title="Reload Titan and return to the StarCraft race selection screen"
+          style={{
+            background: '#11324a',
             color: '#cfe',
             border: '1px solid #1e5a82',
             padding: '2px 10px',
-            cursor: onToggleEditMode ? 'pointer' : 'default',
+            cursor: onResetRaceSelection ? 'pointer' : 'default',
             fontFamily: 'inherit',
             fontSize: 11,
           }}
         >
-          {editMode ? 'EDIT MODE ON' : 'edit mode'}
+          race select
         </button>
         <button
           onClick={() => setPanelOpen((v) => !v)}

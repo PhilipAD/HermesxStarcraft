@@ -57,10 +57,14 @@ export class DeltaEngine {
 
   private diffEntities(old: Entity, fresh: Entity): string[] {
     const changes: string[] = []
-    
+
+    // Only fields that affect Titan placement / gameplay sync. Label,
+    // tooltip, and palette fields change whenever the mapper refreshes copy
+    // (e.g. session counts in tooltips) and used to mark almost every entity
+    // as "updated" on a single new session, flooding the bridge and the live
+    // log even though positions and scTypes were unchanged.
     const fields: (keyof Entity)[] = [
-      'label', 'tooltip', 'health', 'maxHealth', 'activity',
-      'color', 'emissive', 'scale', 'tier', 'x', 'y', 'z'
+      'health', 'maxHealth', 'activity', 'tier', 'x', 'y', 'z', 'scType',
     ]
 
     for (const field of fields) {

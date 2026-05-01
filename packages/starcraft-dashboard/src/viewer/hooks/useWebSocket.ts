@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useDashboardStore } from '../store'
-import type { Delta } from '../store'
+import { deltaPayloadFromBridgeMessage } from '../bridgeMessages'
 import { shouldUseBridgeWebSocket } from '../view-mode'
 
 export function useWebSocket(url: string) {
@@ -52,7 +52,12 @@ export function useWebSocket(url: string) {
           if (msg.type === 'snapshot') {
             setEntities(msg.entities)
           } else if (msg.type === 'delta') {
-            applyDelta(msg as Delta)
+            const delta = deltaPayloadFromBridgeMessage(msg)
+            if (delta) {
+              applyDelta(delta)
+            } else {
+              console.warn('[WS] delta message missing payload', msg)
+            }
           } else if (msg.type === 'pong') {
             // Heartbeat response
           }

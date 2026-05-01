@@ -8,5 +8,5 @@
     "path": "/starcraft",
     "position": "after:analytics"
   },
-  "entry": "dist/index.js?v=fit-v2"
+  "entry": "index.js?v=keepalive-v1"
 }

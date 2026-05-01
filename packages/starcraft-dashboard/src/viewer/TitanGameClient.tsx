@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWebSocket } from './hooks/useWebSocket'
 import { TitanHermesOverlay } from './components/TitanHermesOverlay'
 import { TitanMapPicker } from './components/TitanMapPicker'
 import { TitanUnitInspector, type TitanSelectedUnit } from './components/TitanUnitInspector'
 import { TitanNativeHud } from './components/TitanNativeHud'
-import { HermesApiPanel } from './components/HermesApiPanel'
-import { useHermesApi } from './hermes-api-client'
+import { TitanLiveLog } from './components/TitanLiveLog'
 import { useDashboardStore, type Entity } from './store'
+import { scTypeForRace as scTypeForRaceImpl } from './race-mapping'
+import type { StarCraftRace as StarCraftRaceType } from './race-mapping'
 
 /**
  * Full-screen Titan Reactor (OpenBW + original CASC sprites/terrain).
@@ -37,7 +38,7 @@ const MAP_LS_KEY = 'hermes.titan.selectedMap'
 const EDIT_LAYOUT_LS_KEY = 'hermes.titan.editLayout.v1'
 
 type EditOverride = { scType?: string; editPx?: number; editPy?: number }
-type StarCraftRace = 'terran' | 'zerg' | 'protoss'
+type StarCraftRace = StarCraftRaceType
 
 const BUILDING_OPTIONS = [
   'CommandCenter',
@@ -90,72 +91,8 @@ const TITAN_IFRAME_CODE_VERSION = 'boot-ui-fit-v4'
 
 type MapFile = { path: string; name: string; size: number }
 
-const raceScTypeProfiles: Record<StarCraftRace, Record<string, string>> = {
-  terran: {},
-  zerg: {
-    CommandCenter: 'Hatchery',
-    Refinery: 'Extractor',
-    SCV: 'Drone',
-    SupplyDepot: 'Overlord',
-    Barracks: 'SpawningPool',
-    Marine: 'Zergling',
-    Firebat: 'Hydralisk',
-    Ghost: 'Defiler',
-    Factory: 'EvolutionChamber',
-    Starport: 'Spire',
-    Academy: 'HydraliskDen',
-    EngineeringBay: 'EvolutionChamber',
-    Armory: 'UltraliskCavern',
-    ScienceFacility: 'DefilerMound',
-    ComsatStation: 'Overlord',
-    ControlTower: 'NydusCanal',
-    MachineShop: 'QueensNest',
-    CovertOps: 'DefilerMound',
-    PhysicsLab: 'GreaterSpire',
-    Bunker: 'SunkenColony',
-    MissileTurret: 'SporeColony',
-    Dropship: 'Mutalisk',
-    ScienceVessel: 'Defiler',
-  },
-  protoss: {
-    CommandCenter: 'Nexus',
-    Refinery: 'Assimilator',
-    SCV: 'Probe',
-    SupplyDepot: 'Pylon',
-    Barracks: 'Gateway',
-    Marine: 'Zealot',
-    Firebat: 'Dragoon',
-    Ghost: 'DarkTemplar',
-    Factory: 'RoboticsFacility',
-    Starport: 'Stargate',
-    Academy: 'TemplarArchives',
-    EngineeringBay: 'Forge',
-    Armory: 'CyberneticsCore',
-    ScienceFacility: 'Observatory',
-    ComsatStation: 'Observer',
-    ControlTower: 'FleetBeacon',
-    MachineShop: 'RoboticsSupportBay',
-    CovertOps: 'TemplarArchives',
-    PhysicsLab: 'ArbiterTribunal',
-    Bunker: 'ShieldBattery',
-    MissileTurret: 'PhotonCannon',
-    Dropship: 'Shuttle',
-    ScienceVessel: 'Observer',
-  },
-}
-
-const coreByRaceTier: Record<Exclude<StarCraftRace, 'terran'>, string[]> = {
-  zerg: ['Hatchery', 'Lair', 'Hive'],
-  protoss: ['Nexus', 'Nexus', 'Nexus'],
-}
-
 function scTypeForRace(entity: Entity, race: StarCraftRace) {
-  if (race === 'terran') return entity.scType
-  if (entity.scType === 'CommandCenter') {
-    const core = coreByRaceTier[race]
-    return core[Math.max(0, Math.min(core.length - 1, (entity.tier || 1) - 1))]
-  }
-  return raceScTypeProfiles[race][entity.scType] ?? entity.scType
+  return scTypeForRaceImpl(entity, race)
 }
 
 export function TitanGameClient() {
@@ -179,6 +116,7 @@ export function TitanGameClient() {
   const [selectedRace, setSelectedRace] = useState<StarCraftRace | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [selectedUnits, setSelectedUnits] = useState<TitanSelectedUnit[]>([])
+  const [raceResetToken, setRaceResetToken] = useState(0)
   const [editingHermesId, setEditingHermesId] = useState<string | null>(null)
   const [draftScType, setDraftScType] = useState<string | null>(null)
   const [deferredTypeApplyIds, setDeferredTypeApplyIds] = useState<Set<string>>(
@@ -198,7 +136,9 @@ export function TitanGameClient() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const deferredTypeApplyIdsRef = useRef<Set<string>>(new Set())
   const [titanWorldReady, setTitanWorldReady] = useState(false)
-  const hermesApi = useHermesApi(iframeRef)
+  /** True only after Titan applies `hermes:entities` (map + Hermes units settled). */
+  const [entitiesAppliedReady, setEntitiesAppliedReady] = useState(false)
+  const [iframeReloadNonce, setIframeReloadNonce] = useState(0)
 
   useEffect(() => {
     if (!editMode) return
@@ -216,8 +156,12 @@ export function TitanGameClient() {
         const units = Array.isArray(ev.data.units) ? ev.data.units : []
         setSelectedUnits(units)
       } else if (ev.data.type === 'titan:world-ready') {
+        setEntitiesAppliedReady(false)
         setTitanWorldReady(true)
+      } else if (ev.data.type === 'titan:hermes-entities-applied') {
+        setEntitiesAppliedReady(true)
       } else if (ev.data.type === 'titan:race-selected') {
+        setEntitiesAppliedReady(false)
         const race = ev.data.race
         if (race === 'terran' || race === 'zerg' || race === 'protoss') {
           setSelectedRace(race)
@@ -228,10 +172,11 @@ export function TitanGameClient() {
     return () => window.removeEventListener('message', onMessage)
   }, [])
 
-  // Subscribe to the Hermes entity store. Whenever the bridge pushes a
-  // snapshot/delta, post a `hermes:entities` message into the Titan iframe so
-  // it can spawn / update / kill OpenBW units to mirror the agent state.
-  // Mapping happens iframe-side (see hermes-entity-bridge.ts).
+  // Hermes entity store: updated by the bridge WebSocket (snapshots + deltas).
+  // We do NOT push every change into the Titan iframe automatically — that
+  // caused huge kill/spawn churn. Instead we sync once when the iframe world
+  // becomes ready (after boot, map change, or manual full reload) and the
+  // user clicks "Reload Titan" when new Hermes deltas are pending.
   const entities = useDashboardStore((s) => s.entities)
   const effectiveEntities = useMemo(() => {
     const next = new Map<string, Entity>()
@@ -248,6 +193,17 @@ export function TitanGameClient() {
     }
     return next
   }, [entities, editOverrides, deferredTypeApplyIds])
+
+  const entitiesRef = useRef(entities)
+  const effectiveEntitiesRef = useRef(effectiveEntities)
+  const editOverridesRef = useRef(editOverrides)
+  const titanWorldReadyRef = useRef(titanWorldReady)
+  const selectedRaceRef = useRef(selectedRace)
+  entitiesRef.current = entities
+  effectiveEntitiesRef.current = effectiveEntities
+  editOverridesRef.current = editOverrides
+  titanWorldReadyRef.current = titanWorldReady
+  selectedRaceRef.current = selectedRace
 
   const persistEditOverrides = (next: Record<string, EditOverride>) => {
     setEditOverrides(next)
@@ -273,31 +229,28 @@ export function TitanGameClient() {
     } catch {}
   }
 
-  useEffect(() => {
-    if (!titanWorldReady || !selectedRace) return
+  const broadcastEntitiesToIframe = useCallback((): boolean => {
+    if (!titanWorldReadyRef.current) return false
+    const race = selectedRaceRef.current
+    if (!race) return false
     const iframe = iframeRef.current
-    if (!iframe || !iframe.contentWindow) return
-    // Convert the Map to a small serialisable array. Only fields the bridge
-    // reads are sent to keep messages cheap.
+    if (!iframe || !iframe.contentWindow) return false
     const payload: Array<Pick<Entity, 'id' | 'scType' | 'x' | 'y' | 'z' | 'activity' | 'label'> & { editPx?: number; editPy?: number }> = []
-    for (const e of effectiveEntities.values()) {
-      const override = editOverrides[e.id]
+    for (const e of effectiveEntitiesRef.current.values()) {
+      const override = editOverridesRef.current[e.id]
       const liveOverride = deferredTypeApplyIdsRef.current.has(e.id)
         ? undefined
         : override
       payload.push({
         id: e.id,
-        // Normal streaming path is still `scType: e.scType`; edit mode only
-        // substitutes the original store type while a saved building edit is
-        // deferred until reload.
         scType: scTypeForRace(
           {
             ...e,
             scType: deferredTypeApplyIdsRef.current.has(e.id)
-              ? entities.get(e.id)?.scType ?? e.scType
+              ? entitiesRef.current.get(e.id)?.scType ?? e.scType
               : e.scType,
           },
-          selectedRace,
+          race,
         ),
         x: e.x,
         y: e.y,
@@ -310,14 +263,34 @@ export function TitanGameClient() {
     }
     try {
       iframe.contentWindow.postMessage({ type: 'hermes:entities', entities: payload }, '*')
+      return true
     } catch (err) {
       console.warn('[TitanGameClient] failed to post hermes:entities', err)
+      return false
     }
-  }, [effectiveEntities, editOverrides, selectedRace, titanWorldReady])
+  }, [])
+
+  const markRefreshed = useDashboardStore((s) => s.markRefreshed)
+
+  useEffect(() => {
+    if (!titanWorldReady || !selectedRace) return
+    // Drop Hermes deltas that arrived during iframe boot (race screen, map
+    // load) so the live-log "Reload Titan" control does not arm from startup
+    // noise. Then push the first post-map snapshot into Titan.
+    markRefreshed()
+    broadcastEntitiesToIframe()
+  }, [titanWorldReady, selectedRace, broadcastEntitiesToIframe, markRefreshed])
+
+  const handleFullReloadTitan = useCallback(() => {
+    setEntitiesAppliedReady(false)
+    setIframeReloadNonce((n) => n + 1)
+    setTitanWorldReady(false)
+  }, [])
 
   // When the iframe reloads (e.g. user picked a different map) we need to
   // re-await the next world-ready signal before the bridge becomes usable.
   const onIframeLoad = () => {
+    setEntitiesAppliedReady(false)
     setTitanWorldReady(false)
   }
 
@@ -358,7 +331,7 @@ export function TitanGameClient() {
     const ac = new AbortController()
     const url = `${cascBase.replace(/\/$/, '')}/maps-list`
     console.log('[TitanGameClient] fetching maps list:', url)
-    fetch(url, { signal: ac.signal })
+    fetch(url, { signal: ac.signal, cache: 'force-cache' })
       .then(async (r) => {
         if (!r.ok) throw new Error(`maps-list HTTP ${r.status}`)
         const j = (await r.json()) as { files?: MapFile[] }
@@ -411,12 +384,9 @@ export function TitanGameClient() {
     // rewinding or restarting. This is the user-preferred "infinite time,
     // no loop" behaviour.
     q.set('endless', '1')
-    // Hermes embed: classic minimap layout — flat 2D rectangle anchored at
-    // the bottom-left corner. Titan's defaults render the minimap as a 3D
-    // tilted parallelogram which (a) looks misaligned and (b) breaks click
-    // hit-tests because the perceived screen position no longer matches the
-    // raycast UV. Force the classic layout so what you see is what you click.
-    q.set('classicMinimap', '1')
+    // Hermes embed: hide Titan's minimap. The StarCraft command HUD remains,
+    // but the map rectangle no longer covers the lower-left play area.
+    q.set('nominimap', '1')
     // Hermes embed: hide the OS cursor everywhere inside the iframe so the
     // only cursor the user sees is the in-game StarCraft cursor sprite.
     q.set('hideOsCursor', '1')
@@ -431,14 +401,15 @@ export function TitanGameClient() {
     // Hermes Command Center / Battlecruiser is spawned at world 0,0,0)
     // instead of the player-0 start location which is in a corner.
     q.set('hermesCenter', '1')
-    // Hermes embed: limit vision to the Hermes-owned player (#0) so the
-    // minimap shows real fog of war that gets uncovered as Hermes units
-    // explore. Without this the default visionFlag=3 (both players) means
-    // the minimap is fully visible everywhere = no fog at all.
+    // Hermes embed: limit vision to the Hermes-owned player (#0) so fog of
+    // war behaves like a real game if Titan overlays are re-enabled.
     q.set('fogOfWar', '1')
     // Hermes embed: Titan owns the splash/race/loading boot UI. It sends
     // `titan:race-selected` back to this dashboard before loading the map.
     q.set('hermesBoot', '1')
+    if (raceResetToken > 0) {
+      q.set('hermesResetRace', String(raceResetToken))
+    }
     // Force VM-safe Titan rendering from the embed URL. Real-GPU/full-quality
     // sessions can still override by opening Titan directly without this param.
     q.set('webglCompat', '1')
@@ -455,7 +426,16 @@ export function TitanGameClient() {
     const built = `${titanBase.replace(/\/$/, '')}/?${q.toString()}`
     console.log('[TitanGameClient] iframe src:', built)
     return built
-  }, [titanBase, cascBase, runtime, plugins, chosenMapPath])
+  }, [titanBase, cascBase, runtime, plugins, chosenMapPath, raceResetToken])
+
+  const resetRaceSelection = () => {
+    setSelectedRace(null)
+    setSelectedUnits([])
+    setEntitiesAppliedReady(false)
+    setTitanWorldReady(false)
+    setEditMode(false)
+    setRaceResetToken((token) => token + 1)
+  }
 
   const pickMap = (p: string) => {
     try {
@@ -539,7 +519,7 @@ export function TitanGameClient() {
       <iframe
         ref={iframeRef}
         // Force full reload when we change the chosen map so Titan re-runs bootup.
-        key={`${chosenMapPath || 'nomap'}:${TITAN_IFRAME_CODE_VERSION}`}
+        key={`${chosenMapPath || 'nomap'}:${TITAN_IFRAME_CODE_VERSION}:${iframeReloadNonce}`}
         title="Titan Reactor (StarCraft original client renderer)"
         src={src}
         onLoad={onIframeLoad}
@@ -561,7 +541,11 @@ export function TitanGameClient() {
         onFocusEntity={focusEntityInIframe}
         entitiesOverride={effectiveEntities}
         editMode={editMode}
-        onToggleEditMode={() => setEditMode((v) => !v)}
+        onResetRaceSelection={resetRaceSelection}
+      />
+      <TitanLiveLog
+        mapReady={titanWorldReady && !!selectedRace && entitiesAppliedReady}
+        onReloadTitan={handleFullReloadTitan}
       />
       {editMode && (
         <div
@@ -689,7 +673,6 @@ export function TitanGameClient() {
         units={selectedUnits}
         onClose={() => setSelectedUnits([])}
       />
-      <HermesApiPanel manifest={hermesApi.manifest} invoke={hermesApi.invoke} />
       {pickerOpen && (
         <TitanMapPicker
           maps={maps}

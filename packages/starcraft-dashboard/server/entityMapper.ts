@@ -335,7 +335,7 @@ export class EntityMapper {
         clickAction: job ? 'cron_editor' : 'status',
         data: { job, baseWorker: !job, activeCronJobs: activeJobs.length, totalCronJobs: state.cronJobs.length },
         positionIndex: i,
-        positionTotal: totalScvs,
+        positionTotal: 80,
       }))
     }
     return entities
@@ -355,7 +355,8 @@ export class EntityMapper {
       clickAction: 'sessions',
       data: { activeSessions: metrics.activeSessions.length, totalSessions: state.stats.totalSessions, totalSessionsEver: state.stats.totalSessionsEver },
       positionIndex: i,
-      positionTotal: barracksCount,
+      // Fixed layout denominator so adding sessions does not slide every barracks slot.
+      positionTotal: 4,
     }))
   }
 
@@ -372,7 +373,8 @@ export class EntityMapper {
       clickAction: 'session_detail',
       data: { session: s },
       positionIndex: i,
-      positionTotal: metrics.activeSessions.length,
+      // Fixed combat grid width so new marines do not reshuffle existing ones.
+      positionTotal: 80,
     }))
   }
 
@@ -664,7 +666,8 @@ export class EntityMapper {
       clickAction: 'memory_browser',
       data: { memoryEntries: state.memory.length, activeCronJobs: metrics.enabledCronJobs.length, activeSessions: metrics.activeSessions.length },
       positionIndex: i,
-      positionTotal: count,
+      // Fixed denominator so depot slots stay put when the visible depot count changes.
+      positionTotal: 8,
     }))
   }
 

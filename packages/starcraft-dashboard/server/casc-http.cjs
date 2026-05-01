@@ -106,6 +106,10 @@ function readCascWithOverlay(rel) {
 }
 
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable'
+const REVALIDATING_CACHE = 'public, max-age=86400, stale-while-revalidate=604800'
+const MAPS_LIST_CACHE = 'public, max-age=300, stale-while-revalidate=3600'
+const convertedPngCache = new Map()
+let mapsListCache = null
 
 const app = express()
 
@@ -152,6 +156,15 @@ function ddsBufferToPngBuffer(ddsBuffer) {
   }
 }
 
+function cachedDdsPng(rel, ddsBuffer) {
+  const key = rel.toLowerCase()
+  const cached = convertedPngCache.get(key)
+  if (cached) return cached
+  const png = ddsBufferToPngBuffer(ddsBuffer)
+  convertedPngCache.set(key, png)
+  return png
+}
+
 // ─── Map file endpoints (files live on disk in SC_ROOT/Maps, NOT inside CASC) ───
 function listMapFilesRecursive(dir, baseLen, acc) {
   let entries
@@ -185,6 +198,11 @@ function listMapFilesRecursive(dir, baseLen, acc) {
 
 app.get('/maps-list', (_req, res) => {
   try {
+    if (mapsListCache) {
+      res.setHeader('Cache-Control', MAPS_LIST_CACHE)
+      res.json(mapsListCache)
+      return
+    }
     const mapsRoot = path.join(scRoot, 'Maps')
     if (!fs.existsSync(mapsRoot)) {
       res.status(404).json({ error: 'Maps dir not found', scRoot })
@@ -192,12 +210,14 @@ app.get('/maps-list', (_req, res) => {
     }
     const all = listMapFilesRecursive(mapsRoot, mapsRoot.length, [])
     all.sort((a, b) => a.path.localeCompare(b.path))
-    res.json({
+    mapsListCache = {
       scRoot,
       mapsRoot,
       count: all.length,
       files: all.slice(0, 2000),
-    })
+    }
+    res.setHeader('Cache-Control', MAPS_LIST_CACHE)
+    res.json(mapsListCache)
   } catch (e) {
     res.status(500).json({ error: String(e && e.message) })
   }
@@ -215,6 +235,12 @@ app.get(/^\/maps\/(.+)$/, (req, res) => {
       res.sendStatus(404)
       return
     }
+    const stat = fs.statSync(full)
+    const etag = `"${stat.size}-${Math.floor(stat.mtimeMs)}"`
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end()
+      return
+    }
     const lower = full.toLowerCase()
     if (lower.endsWith('.scm') || lower.endsWith('.scx')) {
       res.setHeader('Content-Type', 'application/x-starcraft-map')
@@ -223,7 +249,9 @@ app.get(/^\/maps\/(.+)$/, (req, res) => {
     } else {
       res.setHeader('Content-Type', 'application/octet-stream')
     }
-    res.setHeader('Cache-Control', 'public, max-age=120')
+    res.setHeader('Cache-Control', REVALIDATING_CACHE)
+    res.setHeader('ETag', etag)
+    res.setHeader('Last-Modified', stat.mtime.toUTCString())
     res.sendFile(full)
   } catch (e) {
     console.error('[casc-http] /maps error', e && e.message)
@@ -594,9 +622,9 @@ app.get('*', (req, res) => {
     const lower = rel.toLowerCase()
 
     if (wantPng && lower.endsWith('.dds')) {
-      const png = ddsBufferToPngBuffer(Buffer.from(buf))
+      const png = cachedDdsPng(rel, Buffer.from(buf))
       res.setHeader('Content-Type', 'image/png')
-      res.setHeader('Cache-Control', 'public, max-age=300')
+      res.setHeader('Cache-Control', IMMUTABLE_CACHE)
       res.send(png)
       return
     }
