@@ -542,6 +542,7 @@ export function TitanGameClient() {
         entitiesOverride={effectiveEntities}
         editMode={editMode}
         onResetRaceSelection={resetRaceSelection}
+        displayRace={selectedRace}
       />
       <TitanLiveLog
         mapReady={titanWorldReady && !!selectedRace && entitiesAppliedReady}
@@ -672,6 +673,7 @@ export function TitanGameClient() {
       <TitanUnitInspector
         units={selectedUnits}
         onClose={() => setSelectedUnits([])}
+        displayRace={selectedRace}
       />
       {pickerOpen && (
         <TitanMapPicker

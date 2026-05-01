@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useDashboardStore, type Entity } from '../store'
-import { entityDisplayLabel } from '../entityDisplay'
+import { entityDisplayLabel, entityScTypeDisplay } from '../entityDisplay'
+import type { StarCraftRace } from '../race-mapping'
 
 /**
  * HUD + entity panel rendered on top of the Titan iframe.
@@ -22,6 +23,8 @@ export interface TitanHermesOverlayProps {
    * inspector via the existing titan:selected-units round-trip).
    */
   onFocusEntity?: (hermesId: string) => void
+  /** Selected race from Titan; used for race-matched unit/building names in the list. */
+  displayRace?: StarCraftRace | null
 }
 
 export function TitanHermesOverlay({
@@ -33,6 +36,7 @@ export function TitanHermesOverlay({
   editMode = false,
   onResetRaceSelection,
   onFocusEntity,
+  displayRace = null,
 }: TitanHermesOverlayProps = {}) {
   const storeEntities = useDashboardStore((s) => s.entities)
   const entities = entitiesOverride ?? storeEntities
@@ -231,6 +235,7 @@ export function TitanHermesOverlay({
               const focusable = e.scType !== 'VespeneGeyser'
               const clickable = typeof onFocusEntity === 'function' && focusable
               const displayLabel = entityDisplayLabel(e)
+              const typeLabel = entityScTypeDisplay(e, displayRace)
               return (
                 <div
                   key={e.id}
@@ -273,8 +278,8 @@ export function TitanHermesOverlay({
                   }}
                   title={
                     clickable
-                      ? `Click to center the camera on ${displayLabel} (${e.scType})`
-                      : `${e.scType} - ${e.tooltip || ''}`
+                      ? `Click to center the camera on ${displayLabel} (${typeLabel})`
+                      : `${typeLabel} - ${e.tooltip || ''}`
                   }
                 >
                   <span
@@ -288,7 +293,7 @@ export function TitanHermesOverlay({
                   >
                     {displayLabel}
                   </span>
-                  <span style={{ color: '#7af', fontSize: 10 }}>{e.scType}</span>
+                  <span style={{ color: '#7af', fontSize: 10 }}>{typeLabel}</span>
                 </div>
               )
             })}

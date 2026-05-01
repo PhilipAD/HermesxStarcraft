@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useDashboardStore, type Entity } from '../store'
-import { entityDisplayLabel } from '../entityDisplay'
+import { entityDisplayLabel, entityScTypeDisplay } from '../entityDisplay'
+import type { StarCraftRace } from '../race-mapping'
 
 /**
  * Hermes drill-down popup for clicked Titan units.
@@ -32,6 +33,7 @@ export interface TitanSelectedUnit {
 export interface TitanUnitInspectorProps {
   units: TitanSelectedUnit[]
   onClose: () => void
+  displayRace?: StarCraftRace | null
 }
 
 const HERMES_TYPE_HINTS: Record<string, string[]> = {
@@ -95,7 +97,10 @@ const topLogLines = (logs: unknown): string[] => {
   return lines.slice(-12)
 }
 
-const makeSections = (entity: Entity | null): DisplaySection[] => {
+const makeSections = (
+  entity: Entity | null,
+  displayRace: StarCraftRace | null | undefined,
+): DisplaySection[] => {
   if (!entity) return []
   const data = entity.data || {}
   const sections: DisplaySection[] = []
@@ -105,7 +110,7 @@ const makeSections = (entity: Entity | null): DisplaySection[] => {
     rows: [
       { label: 'Hermes ID', value: entity.id },
       { label: 'Type', value: entity.type },
-      { label: 'StarCraft type', value: entity.scType },
+      { label: 'StarCraft type', value: entityScTypeDisplay(entity, displayRace) },
       { label: 'Cluster', value: entity.cluster },
       { label: 'Action', value: entity.clickAction },
       { label: 'Dashboard route', value: data.dashboardRoute },
@@ -342,7 +347,11 @@ const findFallbackEntities = (
   return out
 }
 
-export function TitanUnitInspector({ units, onClose }: TitanUnitInspectorProps) {
+export function TitanUnitInspector({
+  units,
+  onClose,
+  displayRace = null,
+}: TitanUnitInspectorProps) {
   const entities = useDashboardStore((s) => s.entities)
   const [rawOpen, setRawOpen] = useState(false)
   const u = units?.[0] ?? null
@@ -353,7 +362,10 @@ export function TitanUnitInspector({ units, onClose }: TitanUnitInspectorProps) 
     [entity, entities, typeName, u],
   )
   const inspectedEntity = entity ?? fallbackEntities[0] ?? null
-  const sections = useMemo(() => makeSections(inspectedEntity), [inspectedEntity])
+  const sections = useMemo(
+    () => makeSections(inspectedEntity, displayRace),
+    [inspectedEntity, displayRace],
+  )
 
   if (!u) return null
 
@@ -469,7 +481,10 @@ export function TitanUnitInspector({ units, onClose }: TitanUnitInspectorProps) 
                 padding: '2px 0',
               }}
             >
-              <span style={{ color: '#7af' }}>[{e.scType}]</span> {entityDisplayLabel(e)}
+              <span style={{ color: '#7af' }}>
+                [{entityScTypeDisplay(e, displayRace)}]
+              </span>{' '}
+              {entityDisplayLabel(e)}
             </div>
           ))}
         </div>

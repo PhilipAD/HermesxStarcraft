@@ -1,6 +1,17 @@
 import type { Entity } from './store'
+import type { StarCraftRace } from './race-mapping'
+import { displayScTypeName, prettifyScTypeId } from './race-mapping'
 
-type EntityDisplayParts = Pick<Entity, 'id' | 'label' | 'scType'> & { cluster?: string }
+type EntityDisplayParts = Pick<Entity, 'id' | 'label' | 'scType' | 'tier'> & { cluster?: string }
+
+/** Race-aware StarCraft unit/building name for HUD copy (mapper uses Terran ids). */
+export function entityScTypeDisplay(
+  entity: EntityDisplayParts,
+  race: StarCraftRace | null | undefined,
+): string {
+  if (!race) return prettifyScTypeId(entity.scType)
+  return displayScTypeName(entity.scType, race, entity.tier)
+}
 
 export function entityIconFor(entity: EntityDisplayParts): string {
   const text = `${entity.id} ${entity.label} ${entity.scType} ${entity.cluster ?? ''}`.toLowerCase()

@@ -9,7 +9,7 @@
   const useEffect = SDK.hooks.useEffect || React.useEffect;
   const useRef = SDK.hooks.useRef || React.useRef;
 
-  const DEFAULT_URL = "http://127.0.0.1:9120/?titan=1";
+  const DEFAULT_URL = "http://127.0.0.1:9120/?titan=1&nominimap=1";
   const SINGLETON_KEY = "__HERMESXSTARCRAFT_IFRAME__";
 
   function hiddenFrameStyle(el) {
@@ -137,7 +137,7 @@
           "div",
           { className: "flex items-center gap-3" },
           React.createElement("h2", { className: "text-lg font-semibold" }, "Hermes x StarCraft"),
-          React.createElement(Badge, { variant: "outline" }, "Terran ops view")
+          React.createElement(Badge, { variant: "outline" }, "Live base view")
         ),
         React.createElement(
           "div",

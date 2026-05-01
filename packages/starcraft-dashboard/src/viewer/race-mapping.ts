@@ -85,3 +85,23 @@ export function scTypeForRace(entity: RaceMappableEntity, race: StarCraftRace): 
   }
   return raceScTypeProfiles[race][entity.scType] ?? entity.scType
 }
+
+/**
+ * UI label for the mapper's internal Terran scType, using the same mapping as
+ * the Titan bridge for the selected race, then spacing CamelCase for display.
+ */
+export function prettifyScTypeId(id: string): string {
+  return id
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim()
+}
+
+export function displayScTypeName(
+  internalTerranScType: string,
+  race: StarCraftRace,
+  tier?: number,
+): string {
+  const mapped = scTypeForRace({ scType: internalTerranScType, tier }, race)
+  return prettifyScTypeId(mapped)
+}
