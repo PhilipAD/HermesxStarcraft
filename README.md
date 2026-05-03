@@ -1,7 +1,5 @@
 ![HERMES X STARCRAFT](assets/readme-banner.png)
 
-# Hermes x StarCraft
-
 Hermes x StarCraft adds a StarCraft Remastered operations view to the Hermes dashboard. It renders a live Hermes installation as a StarCraft base after a Remastered-style boot flow, then embeds a modified Titan Reactor/OpenBW renderer as a dashboard tab.
 
 ## What It Does
